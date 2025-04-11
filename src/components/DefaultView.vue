@@ -1,61 +1,36 @@
 <template>
-  <v-card class="mx-auto my-5" max-width="600px">
-    <!-- App Bar Section -->
-    <v-layout>
-      <v-app-bar color="primary">
-        <v-app-bar-nav-icon variant="text" @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
-        <v-toolbar-title>My Workouts</v-toolbar-title>
-        <template v-if="$vuetify.display.mdAndUp">
-          <v-btn icon="mdi-magnify" variant="text"></v-btn>
-          <v-btn icon="mdi-filter" variant="text"></v-btn>
-        </template>
-        <v-btn icon="mdi-dots-vertical" variant="text"></v-btn>
-      </v-app-bar>
+  <v-app>
+    <header>
+      <Navbar />
+    </header>
 
-      <!-- Side Navigation Drawer -->
-      <v-navigation-drawer v-model="drawer" :location="$vuetify.display.mobile ? 'bottom' : undefined" temporary>
-        <v-list :items="items"></v-list>
-      </v-navigation-drawer>
+    <!-- Main Content Area -->
+    <v-main class="ml-auto mr-auto">
+          <!-- Date Carousel -->
+          <DateCarousel class="" @dateChanged="updateDate" />
 
-      <!-- Main Content Section (Everything Below the App Bar) -->
-      <v-main class="d-flex flex-column align-center px-4 py-5" style="min-height: 100vh; max-width: 600px;">
-        <!-- Date Carousel Section -->
-        <DateCarousel 
-          class="mb-6 mx-auto dateCarousel" 
-          style="max-width: 500px;" 
-          @dateChanged="updateDate" 
-        />
+          <!-- Workout History -->
+            <p v-if="workouts.length === 0">No workouts recorded for this date.</p>
+            <ExerciseGroupList
+              v-else
+              :workouts="workouts"
+              @delete-exercise="handleDeleteExercise"
+            />
 
-        <!-- Exercise Groups List Section -->
-        <div class="workout-history text-center w-100 mb-6">
-          <p v-if="workouts.length === 0">No workouts recorded for this date.</p>
-          <ExerciseGroupList 
-            :workouts="workouts" 
-            v-else 
-            @delete-exercise="handleDeleteExercise" 
+
+          <!-- Add Exercise Button -->
+          <v-btn color="success" class="" @click="openModal">Add Exercise</v-btn>
+
+          <!-- Add Exercise Modal -->
+          <AddExerciseModal
+            v-model:show="showModal"
+            :exercise="newExercise"
+            @update:exerciseName="newExercise.name = $event"
+            @update:exerciseSets="newExercise.sets = $event"
+            @update:exerciseReps="newExercise.reps = $event"
           />
-        </div>
-        
-        <!-- Add Exercise Button -->
-        <v-btn 
-          class="mt-4 mb-6" 
-          color="success" 
-          @click="openModal" 
-        >
-          Add Exercise
-        </v-btn>
-
-        <!-- Add Exercise Modal -->
-        <AddExerciseModal
-          v-model:show="showModal"
-          :exercise="newExercise"
-          @update:exerciseName="newExercise.name = $event"
-          @update:exerciseSets="newExercise.sets = $event"
-          @update:exerciseReps="newExercise.reps = $event"
-        />
-      </v-main>
-    </v-layout>
-  </v-card>
+    </v-main>
+  </v-app>
 </template>
 
 <script>
@@ -63,18 +38,20 @@ import { ref } from "vue";
 import DateCarousel from "../components/DateCarousel.vue";
 import ExerciseGroupList from "../components/ExerciseGroupList.vue";
 import AddExerciseModal from "../components/AddExerciseModal.vue";
+import Navbar from "./Navbar.vue";
 
 export default {
   components: {
     DateCarousel,
     ExerciseGroupList,
     AddExerciseModal,
+    Navbar
   },
   data() {
     return {
-      showModal: false, // Controls the visibility of the modal
-      workouts: [], // Store the workout data
-      newExercise: {  // Store the new exercise data
+      showModal: false,
+      workouts: [],
+      newExercise: {
         name: "",
         sets: 3,
         reps: 10,
@@ -93,7 +70,7 @@ export default {
       weight: "",
     });
 
-    const exerciseNames = ref([ 
+    const exerciseNames = ref([
       "Bench Press",
       "Squats",
       "Deadlifts",
@@ -102,7 +79,7 @@ export default {
       "Tricep Dips",
     ]);
 
-    const items = ref([ 
+    const items = ref([
       { title: "Home", icon: "mdi-home" },
       { title: "Workouts", icon: "mdi-dumbbell" },
       { title: "Settings", icon: "mdi-cog" },
@@ -110,7 +87,7 @@ export default {
 
     const fetchWorkouts = (date) => {
       const data = {
-        "2025-04-02": [
+        "2025-04-09": [
           {
             group: "Chest",
             exercises: [
@@ -149,18 +126,13 @@ export default {
     };
 
     const saveExercise = () => {
-      if (!newExercise.value.name) {
-        return;
-      }
-
+      if (!newExercise.value.name) return;
       const exerciseData = { ...newExercise.value };
-
       if (workouts.value.length > 0) {
         workouts.value[0].exercises.push(exerciseData);
       } else {
         workouts.value.push({ group: "Custom", exercises: [exerciseData] });
       }
-
       newExercise.value = { name: "", sets: 3, reps: 10, weight: "", timePerSet: "" };
     };
 
@@ -180,43 +152,24 @@ export default {
   },
   methods: {
     openModal() {
-      this.showModal = true; // Show the modal
+      this.showModal = true;
     },
     handleDeleteExercise(exerciseToDelete) {
       this.workouts.forEach((group, groupIndex) => {
-        const exerciseIndex = group.exercises.findIndex(exercise => exercise.name === exerciseToDelete.name);
-    
+        const exerciseIndex = group.exercises.findIndex(
+          (exercise) => exercise.name === exerciseToDelete.name
+        );
         if (exerciseIndex !== -1) {
           group.exercises.splice(exerciseIndex, 1);
-    
           if (group.exercises.length === 0) {
             this.workouts.splice(groupIndex, 1);
           }
         }
       });
-    }
-  }
+    },
+  },
 };
 </script>
 
 <style scoped>
-/* Custom styles for spacing and alignment */
-.v-main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.workout-history {
-  margin: 24px;
-  text-align: center;
-}
-
-.v-btn {
-  margin-top: 12px;
-}
-
-.dateCarousel {
-  margin: 10px;
-}
 </style>
