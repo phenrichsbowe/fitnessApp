@@ -1,25 +1,23 @@
 <template>
-  <div class="modal fade show" tabindex="-1" style="display: block;" @click.self="closeModal">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <!-- Modal Header -->
-        <div class="modal-header">
-          <h5 class="modal-title">{{ title }}</h5>
-          <slot name="header"></slot>
-        </div>
-        
-        <!-- Modal Body -->
-        <div class="modal-body">
-          <slot name="body"></slot>
-        </div>
-        
-        <!-- Modal Footer -->
-        <div class="modal-footer">
-          <slot name="footer"></slot>
-        </div>
-      </div>
-    </div>
-  </div>
+  <v-dialog v-model="isVisible" max-width="600px" persistent @click:outside="closeModal">
+    <v-card>
+      <!-- Header -->
+      <v-card-title class="modal-title">
+        <span class="text-h6 font-weight-medium">{{ title }}</span>
+        <v-spacer></v-spacer>
+      </v-card-title>
+
+      <!-- Body -->
+      <v-card-text>
+        <slot name="body"></slot>
+      </v-card-text>
+
+      <!-- Footer -->
+      <v-card-actions>
+        <slot name="footer"></slot>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script>
@@ -27,17 +25,35 @@ export default {
   props: {
     title: {
       type: String,
-      required: true,
+      required: true
     },
+    show: {
+      type: Boolean,
+      required: true
+    }
+  },
+  emits: ['close', 'update:show'],
+  computed: {
+    isVisible: {
+      get() {
+        return this.show;
+      },
+      set(value) {
+        this.$emit('update:show', value);
+        if (!value) this.$emit('close');
+      }
+    }
   },
   methods: {
     closeModal() {
-      this.$emit('close');  // Emit a 'close' event to inform the parent component to close the modal
-    },
-  },
+      this.isVisible = false;
+    }
+  }
 };
 </script>
 
 <style scoped>
-/* Add custom styles here if necessary */
+.modal-title {
+  padding-right: 8px;
+}
 </style>
