@@ -1,99 +1,99 @@
 <template>
-  <v-dialog
-    v-model="internalShow"
-    max-width="500px"
+  <ModalBase
+    :title="'Add Exercise'"
+    :show="show"
+    @update:show="$emit('update:show', $event)"
+    @close="closeModal"
   >
-    <v-card>
-      <!-- Modal Header -->
-      <v-card-title>
-        <span class="headline">Add Exercise</span>
-        <v-spacer></v-spacer>
-        <v-btn icon @click="closeModal">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </v-card-title>
+    <template #body>
+      <v-form ref="form">
+        <v-text-field
+          label="Exercise Name"
+          v-model="exercise.name"
+          :rules="[(v) => !!v || 'Exercise name is required']"
+          required
+        />
+        <v-text-field
+          label="Sets"
+          v-model.number="exercise.sets"
+          type="number"
+          min="1"
+          :rules="[(v) => !!v || 'Sets are required']"
+          required
+        />
+        <v-text-field
+          label="Reps"
+          v-model.number="exercise.reps"
+          type="number"
+          min="1"
+          :rules="[(v) => !!v || 'Reps are required']"
+          required
+        />
+      </v-form>
+    </template>
 
-      <!-- Modal Body (Form Fields) -->
-      <v-card-text>
-        <v-form ref="form">
-          <v-text-field
-            label="Exercise Name"
-            required
-            :rules="[v => !!v || 'Exercise name is required']"
-          ></v-text-field>
-
-          <v-text-field
-            label="Sets"
-            type="number"
-            min="1"
-            required
-            :rules="[v => !!v || 'Sets are required']"
-          ></v-text-field>
-
-          <v-text-field
-            label="Reps"
-            type="number"
-            min="1"
-            required
-            :rules="[v => !!v || 'Reps are required']"
-          ></v-text-field>
-        </v-form>
-      </v-card-text>
-
-      <!-- Modal Footer (Save Button) -->
-      <v-card-actions>
-        <v-btn color="primary" @click="saveExercise">Save Exercise</v-btn>
+    <template #footer>
+      <div class="d-flex justify-end">
+        <v-btn color="primary" @click="saveExercise">Save</v-btn>
         <v-btn text @click="closeModal">Cancel</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      </div>
+    </template>
+  </ModalBase>
 </template>
 
 <script>
+import ModalBase from "./base/ModalBase.vue";
+
 export default {
+  components: { ModalBase },
   props: {
     show: {
       type: Boolean,
-      required: true,  // The visibility prop for the dialog
+      required: true,
     },
     exercise: {
       type: Object,
-      required: true,  // The exercise data
+      required: true,
     },
   },
-  emits: [
-    "update:show",  // Emit updated visibility to parent
-    "update:exercise-name",  // Emit updated exercise name to parent
-    "update:exercise-sets",  // Emit updated sets to parent
-    "update:exercise-reps",  // Emit updated reps to parent
-  ],
-  data() {
-    return {
-      internalShow: this.show,  // Internal state for dialog visibility
-    };
-  },
-  watch: {
-    show(newVal) {
-      this.internalShow = newVal;  // Sync prop value with internal state
-    },
-    internalShow(newVal) {
-      this.$emit("update:show", newVal);  // Emit visibility updates back to parent
-    },
-  },
+  emits: ["update:show", "save-exercise"],
+
   methods: {
     closeModal() {
-      this.internalShow = false;  // Close modal
+      this.$emit("update:show", false);
     },
     saveExercise() {
-      this.$emit("update:exercise-name", this.exercise.name);  // Emit exercise name change
-      this.$emit("update:exercise-sets", this.exercise.sets);  // Emit exercise sets change
-      this.$emit("update:exercise-reps", this.exercise.reps);  // Emit exercise reps change
-      this.closeModal();  // Close the modal after saving
+      this.$emit("save-exercise", { ...this.exercise });
+      this.closeModal();
     },
   },
 };
 </script>
 
 <style scoped>
-/* Add custom styles for the modal if needed */
+.v-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.v-text-field {
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+.v-btn {
+  min-width: 120px;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.v-btn:first-of-type {
+  margin-right: 12px;
+}
+
+.v-btn[text] {
+  color: #757575;
+}
 </style>
