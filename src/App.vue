@@ -1,9 +1,12 @@
 <template>
-  <DefaultView></DefaultView>
+  <v-app>
+    <router-view />
+    <AppFooter />
+  </v-app>
 </template>
 
 <script setup>
-  import DefaultView from './components/DefaultView.vue';
+  import AppFooter from '@/components/base/AppFooter.vue'
 </script>
 
 <style scoped>

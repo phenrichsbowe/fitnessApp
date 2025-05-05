@@ -1,27 +1,24 @@
 <template>
-  <v-app>
     <header>
       <Navbar />
     </header>
 
     <v-main class="ml-auto mr-auto">
-      <!-- Date Carousel stays here -->
       <DateCarousel @dateChanged="updateDate" />
 
-      <!-- Pass the selected date as a prop to WorkoutHistory -->
       <WorkoutHistory
         :selectedDate="currentDate"
       />
     </v-main>
-  </v-app>
 </template>
 
 
 <script>
 import { ref } from "vue";
-import DateCarousel from "./DateCarousel.vue";
-import Navbar from "./Navbar.vue";
-import WorkoutHistory from "./WorkoutHistory.vue";
+import DateCarousel from "@/components/DateCarousel.vue";
+import Navbar from "@/components/Navbar.vue";
+import WorkoutHistory from "@/components/WorkoutHistory.vue";
+import AppFooter from "@/components/base/AppFooter.vue";
 
 export default {
   components: {

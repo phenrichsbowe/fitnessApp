@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar color="primary">
+  <v-app-bar color="primary" flat>
     <v-app-bar-nav-icon variant="text" @click.stop="toggleDrawer" />
     <v-toolbar-title>My Workouts</v-toolbar-title>
 
@@ -11,13 +11,26 @@
     <v-btn icon="mdi-dots-vertical" variant="text" />
   </v-app-bar>
 
-  <!-- Navigation Drawer -->
   <v-navigation-drawer
     v-model="drawer"
     :location="$vuetify.display.mobile ? 'bottom' : undefined"
     temporary
   >
-    <v-list :items="items" />
+    <v-list>
+      <v-list-item
+        v-for="item in items"
+        :key="item.title"
+        :to="item.to"
+        link
+        @click="drawer = false"
+      >
+        <v-list-item-icon>
+          <v-icon>{{ item.icon }}</v-icon>
+        </v-list-item-icon>
+
+        <v-list-item-title>{{ item.title }}</v-list-item-title>
+      </v-list-item>
+    </v-list>
   </v-navigation-drawer>
 </template>
 
@@ -27,10 +40,9 @@ export default {
     return {
       drawer: false,
       items: [
-        // Add items for the navigation list
-        { title: 'Dashboard', icon: 'mdi-home' },
-        { title: 'Settings', icon: 'mdi-settings' },
-        { title: 'Profile', icon: 'mdi-account' },
+        { title: 'Dashboard', icon: 'mdi-home', to: '/' },
+        { title: 'Settings', icon: 'mdi-cog', to: '/settings' },
+        { title: 'Profile', icon: 'mdi-account', to: '/profile' },
       ],
     };
   },
@@ -41,7 +53,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-/* Add styles here if needed */
-</style>
