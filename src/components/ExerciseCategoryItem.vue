@@ -2,7 +2,14 @@
   <v-card class="exercise-item-card" outlined>
     <v-card-text class="d-flex flex-column gap-2">
       <div class="d-flex justify-space-between align-center">
-        <div class="exercise-name">{{ exercise.name }}</div>
+        <div class="exercise-details">
+          <div class="weight" v-if="exercise.weight">
+            {{ exercise.weight }} kg
+          </div>
+          <div class="time" v-if="exercise.timePerSet">
+            {{ exercise.timePerSet }} sec
+          </div>
+        </div>
         <v-btn icon @click="$emit('delete', exercise)">
           <v-icon color="red">mdi-delete</v-icon>
         </v-btn>
@@ -73,10 +80,19 @@ export default {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-.exercise-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1976d2;
+.exercise-details {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.weight, .time {
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  background-color: #f5f5f5;
+  padding: 4px 12px;
+  border-radius: 16px;
 }
 
 .control-row {

@@ -24,32 +24,26 @@
         link
         @click="drawer = false"
       >
-        <v-list-item-icon>
-          <v-icon>{{ item.icon }}</v-icon>
-        </v-list-item-icon>
-
+        <template v-slot:prepend>
+          <v-icon :icon="item.icon" />
+        </template>
         <v-list-item-title>{{ item.title }}</v-list-item-title>
       </v-list-item>
     </v-list>
   </v-navigation-drawer>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      drawer: false,
-      items: [
-        { title: 'Dashboard', icon: 'mdi-home', to: '/' },
-        { title: 'Settings', icon: 'mdi-cog', to: '/settings' },
-        { title: 'Profile', icon: 'mdi-account', to: '/profile' },
-      ],
-    };
-  },
-  methods: {
-    toggleDrawer() {
-      this.drawer = !this.drawer;
-    },
-  },
-};
+<script setup>
+import { ref } from 'vue'
+
+const drawer = ref(false)
+const items = [
+  { title: 'Dashboard', icon: 'mdi-home', to: '/' },
+  { title: 'Settings', icon: 'mdi-cog', to: '/settings' },
+  { title: 'Profile', icon: 'mdi-account', to: '/profile' },
+]
+
+const toggleDrawer = () => {
+  drawer.value = !drawer.value
+}
 </script>

@@ -1,143 +1,157 @@
 <template>
-  <v-app>
-    <v-container class="py-4 px-3 workout-history-container" fluid>
-      <div v-if="workouts.length === 0" class="text-center text-grey my-6">
-        No workouts recorded for this date.
-      </div>
+  <v-container class="py-4 px-3 workout-history-container" fluid>
+    <div v-if="loading" class="workout-skeleton">
+      <v-skeleton-loader
+        v-for="n in 3"
+        :key="n"
+        type="card"
+        class="mb-4"
+      ></v-skeleton-loader>
+    </div>
 
-      <ExerciseGroupList
-        v-else
-        :exercises="workouts"
-        @delete-exercise="handleDeleteExercise"
-      />
+    <div v-else-if="error" class="text-center text-error my-6">
+      {{ error }}
+    </div>
 
-      <div class="d-flex justify-center mt-6">
-        <v-btn color="success" class="add-exercise-btn" @click="openModal">
-          Add Exercise
-        </v-btn>
-      </div>
+    <div v-else-if="workouts.length === 0" class="text-center text-grey my-6">
+      No workouts recorded for this date.
+    </div>
 
-      <AddExerciseModal
-        v-model:show="showModal"
-        :exercise="newExercise"
-        @save-exercise="saveExercise"
-      />
+    <ExerciseCategoryList
+      v-else
+      :exercises="workouts"
+      :loading="loading"
+      @delete-exercise="handleDeleteExercise"
+    />
 
-    </v-container>
-  </v-app>
+    <div class="d-flex justify-center mt-6">
+      <v-btn
+        color="primary"
+        class="add-exercise-btn"
+        @click="openModal"
+        :loading="loading"
+        :disabled="loading"
+      >
+        <v-icon start>mdi-plus</v-icon>
+        Add Exercise
+      </v-btn>
+    </div>
+
+    <AddExerciseModal
+      v-model:show="showModal"
+      :exercise="newExercise"
+      @save-exercise="saveExercise"
+    />
+  </v-container>
 </template>
 
+<script setup>
+import { ref, watch, onMounted, computed } from 'vue'
+import { useWorkoutStore } from '@/stores/workout'
+import { useExerciseStore } from '@/stores/exercise'
+import ExerciseCategoryList from './ExerciseCategoryList.vue'
+import AddExerciseModal from './AddExerciseModal.vue'
 
-<script>
-import { ref, watch } from "vue";
-import DateCarousel from "../components/DateCarousel.vue";
-import ExerciseGroupList from "../components/ExerciseCategoryList.vue";
-import AddExerciseModal from "../components/AddExerciseModal.vue";
-import Navbar from "./Navbar.vue";
-import WorkoutManager from "../models/WorkoutManager.js";
+const props = defineProps({
+  selectedDate: {
+    type: Date,
+    required: true
+  }
+})
 
-export default {
-  components: {
-    DateCarousel,
-    ExerciseGroupList,
-    AddExerciseModal,
-    Navbar,
-  },
-  props: {
-    selectedDate: {
-      type: Date,
-      required: true,
-    },
-  },
-  setup(props) {
-    const workouts = ref([]);
-    const showModal = ref(false);
+const workoutStore = useWorkoutStore()
+const exerciseStore = useExerciseStore()
 
-    const workoutManager = new WorkoutManager();
+const showModal = ref(false)
+const loading = ref(false)
+const error = ref(null)
 
-    const dummyData = [
-      {
-        date: "2025-04-09",
-        exercises: [
-          { name: "Bench Press", sets: 3, reps: 10, weight: "80lbs", timePerSet: "45s" },
-          { name: "Squats", sets: 4, reps: 12, weight: "100lbs", timePerSet: "50s" },
-        ],
-      },
-      {
-        date: "2025-03-26",
-        exercises: [
-          { name: "Pull-ups", sets: 3, reps: 8, weight: "Bodyweight", timePerSet: "30s" },
-          { name: "Bicep Curls", sets: 3, reps: 12, weight: "15lbs", timePerSet: "40s" },
-        ],
-      },
-    ];
+const newExercise = ref({
+  name: '',
+  sets: 3,
+  reps: 10,
+  weight: '',
+  timePerSet: ''
+})
 
-    dummyData.forEach(entry => {
-      const date = new Date(entry.date);
-      entry.exercises.forEach(ex => workoutManager.addExercise(date, ex));
-    });
+// Computed property for workouts
+const workouts = computed(() => {
+  return workoutStore.getWorkoutsByDate(props.selectedDate)
+})
 
-    const newExercise = ref({
-      name: "",
+// Initialize stores
+onMounted(async () => {
+  try {
+    loading.value = true
+    await Promise.all([
+      workoutStore.fetchWorkouts(),
+      exerciseStore.fetchAll()
+    ])
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+})
+
+// Watch for date changes
+watch(() => props.selectedDate, async () => {
+  try {
+    loading.value = true
+    await workoutStore.fetchWorkouts()
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+})
+
+const openModal = () => {
+  showModal.value = true
+}
+
+const handleDeleteExercise = async (exerciseToDelete) => {
+  try {
+    loading.value = true
+    await workoutStore.removeExercise(
+      props.selectedDate,
+      exerciseToDelete.name,
+      exerciseToDelete.id
+    )
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const saveExercise = async () => {
+  if (!newExercise.value.name) return
+
+  try {
+    loading.value = true
+    const exerciseData = {
+      ...newExercise.value,
+      category: exerciseStore.allExercises.find(ex => ex.name === newExercise.value.name)?.category
+    }
+    await workoutStore.addExercise(props.selectedDate, exerciseData)
+    
+    // Reset form
+    newExercise.value = {
+      name: '',
       sets: 3,
       reps: 10,
-      weight: "",
-      timePerSet: "",
-    });
-
-    const updateWorkouts = () => {
-      workouts.value = [...workoutManager.getWorkouts(props.selectedDate)];
-    };
-
-    const openModal = () => {
-      showModal.value = true;
-    };
-
-    const handleDeleteExercise = (exerciseToDelete) => {
-      const workout = workoutManager.getWorkoutByDate(props.selectedDate);
-      if (!workout) { console.log('no workout'); return; }
-
-      const index = workout.getExercises().findIndex(
-        (exercise) => exercise.name === exerciseToDelete.name
-      );
-
-      console.log(index)
-
-      if (index !== -1) {
-        workoutManager.removeExercise(props.selectedDate, index);
-        updateWorkouts();
-      }
-    };
-
-    const saveExercise = () => {
-      if (!newExercise.value.name) return;
-
-      workoutManager.addExercise(props.selectedDate, { ...newExercise.value });
-      updateWorkouts();
-
-      newExercise.value = {
-        name: "",
-        sets: 3,
-        reps: 10,
-        weight: "",
-        timePerSet: "",
-      };
-    };
-
-    watch(() => props.selectedDate, updateWorkouts, { immediate: true });
-
-    return {
-      workouts,
-      showModal,
-      newExercise,
-      openModal,
-      handleDeleteExercise,
-      saveExercise,
-    };
-  },
-};
+      weight: '',
+      timePerSet: ''
+    }
+    showModal.value = false
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
 </script>
-
 
 <style scoped>
 .workout-history-container {
@@ -150,10 +164,19 @@ export default {
   color: #888888;
 }
 
+.text-error {
+  color: rgb(var(--v-theme-error));
+}
+
 .add-exercise-btn {
   min-width: 220px;
   text-transform: none;
   font-weight: 500;
   font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+.workout-skeleton {
+  padding: 16px;
 }
 </style>
