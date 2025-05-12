@@ -3,7 +3,7 @@ import supabase from '@/lib/supabase'
 
 export const useExerciseStore = defineStore('exercise', {
   state: () => ({
-    exercises: [],
+    allExercises: [],
     loading: false,
     error: null,
     mockExercises: [
@@ -26,11 +26,12 @@ export const useExerciseStore = defineStore('exercise', {
   }),
 
   getters: {
-    allExercises: (state) => state.exercises,
-    getByCategory: (state) => (category) => state.exercises.filter(ex => ex.category === category),
+    getExercisesByCategory: (state) => (category) => {
+      return state.allExercises.filter(exercise => exercise.category === category)
+    },
     searchExercises: (state) => (term) => {
       const lower = term.toLowerCase()
-      return state.exercises.filter(ex => ex.name.toLowerCase().includes(lower))
+      return state.allExercises.filter(ex => ex.name.toLowerCase().includes(lower))
     }
   },
 
@@ -44,13 +45,13 @@ export const useExerciseStore = defineStore('exercise', {
         // const { data, error } = await supabase
         //   .from('exercises')
         //   .select('*')
-        //   .order('name', { ascending: true })
+        //   .order('name')
 
         // if (error) throw error
-        // this.exercises = data
+        // this.allExercises = data
 
-        // Use mock data instead
-        this.exercises = this.mockExercises
+        // Use mock data for now
+        this.allExercises = this.mockExercises
       } catch (error) {
         this.error = error.message
         throw error
@@ -72,14 +73,71 @@ export const useExerciseStore = defineStore('exercise', {
 
         // if (error) throw error
         // if (data && data.length > 0) {
-        //   this.exercises.push(data[0])
+        //   this.allExercises.push(data[0])
         //   return data[0]
         // }
 
-        // Use mock data instead
-        const newExercise = { name, category }
-        this.exercises.push(newExercise)
+        // Use mock data for now
+        const newExercise = {
+          id: Date.now().toString(),
+          name,
+          category
+        }
+        this.allExercises.push(newExercise)
         return newExercise
+      } catch (error) {
+        this.error = error.message
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async updateExercise(id, updates) {
+      this.loading = true
+      this.error = null
+
+      try {
+        // Comment out Supabase call for now
+        // const { error } = await supabase
+        //   .from('exercises')
+        //   .update(updates)
+        //   .eq('id', id)
+
+        // if (error) throw error
+
+        const index = this.allExercises.findIndex(ex => ex.id === id)
+        if (index !== -1) {
+          this.allExercises[index] = {
+            ...this.allExercises[index],
+            ...updates
+          }
+        }
+      } catch (error) {
+        this.error = error.message
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteExercise(id) {
+      this.loading = true
+      this.error = null
+
+      try {
+        // Comment out Supabase call for now
+        // const { error } = await supabase
+        //   .from('exercises')
+        //   .delete()
+        //   .eq('id', id)
+
+        // if (error) throw error
+
+        const index = this.allExercises.findIndex(ex => ex.id === id)
+        if (index !== -1) {
+          this.allExercises.splice(index, 1)
+        }
       } catch (error) {
         this.error = error.message
         throw error

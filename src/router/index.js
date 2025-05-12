@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import ExerciseManagement from '@/views/ExerciseManagement.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +28,14 @@ const router = createRouter({
       name: 'workout',
       component: () => import('@/views/HomeScreen.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/exercises',
+      name: 'exercises',
+      component: ExerciseManagement,
+      meta: {
+        requiresAuth: true
+      }
     }
   ]
 })

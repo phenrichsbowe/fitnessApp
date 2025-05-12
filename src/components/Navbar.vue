@@ -41,6 +41,7 @@ const items = [
   { title: 'Dashboard', icon: 'mdi-home', to: '/' },
   { title: 'Settings', icon: 'mdi-cog', to: '/settings' },
   { title: 'Profile', icon: 'mdi-account', to: '/profile' },
+  { title: 'Exercises', icon: 'mdi-account', to: '/exercises' },
 ]
 
 const toggleDrawer = () => {
