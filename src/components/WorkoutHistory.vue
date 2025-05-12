@@ -95,12 +95,20 @@ onMounted(async () => {
 })
 
 // Watch for date changes
-watch(() => props.selectedDate, async () => {
+watch(() => props.selectedDate, async (newDate) => {
   try {
     loading.value = true
-    await workoutStore.fetchWorkouts()
+    error.value = null
+    
+    // Check if we already have the workout for this date
+    const existingWorkout = workoutStore.getWorkoutByDate(newDate)
+    if (!existingWorkout) {
+      // Only fetch if we don't have the workout
+      await workoutStore.fetchWorkouts()
+    }
   } catch (err) {
-    error.value = err.message
+    error.value = 'Failed to load workouts: ' + err.message
+    console.error('Error fetching workouts:', err)
   } finally {
     loading.value = false
   }

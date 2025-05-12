@@ -1,8 +1,4 @@
 <template>
-    <header>
-      <Navbar />
-    </header>
-
     <v-main class="ml-auto mr-auto">
       <DateCarousel @dateChanged="updateDate" />
 
@@ -18,7 +14,6 @@ import { ref } from "vue";
 import DateCarousel from "@/components/DateCarousel.vue";
 import Navbar from "@/components/Navbar.vue";
 import WorkoutHistory from "@/components/WorkoutHistory.vue";
-import AppFooter from "@/components/base/AppFooter.vue";
 
 export default {
   components: {

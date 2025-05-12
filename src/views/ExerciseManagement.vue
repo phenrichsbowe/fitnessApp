@@ -1,6 +1,5 @@
 <template>
   <div class="exercise-management-page">
-    <Navbar />
     <v-main class="main-content">
       <v-container class="py-4 px-3 exercise-management-container" fluid>
         <div class="d-flex justify-space-between align-center mb-6">
@@ -177,7 +176,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useExerciseStore } from '@/stores/exercise'
-import Navbar from '@/components/Navbar.vue'
 
 const exerciseStore = useExerciseStore()
 const loading = ref(false)

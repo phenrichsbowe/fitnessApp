@@ -11,10 +11,10 @@ export const useWorkoutStore = defineStore('workout', {
   getters: {
     getWorkoutByDate: (state) => (date) => {
       const dateKey = date.toISOString().split('T')[0]
-      return state.workouts.find(workout => workout.date.toISOString().split('T')[0] === dateKey)
+      return state.workouts.find(workout => workout.date.split('T')[0] === dateKey)
     },
     getWorkoutsByDate: (state) => (date) => {
-      const workout = state.workouts.find(w => w.date.toISOString().split('T')[0] === date.toISOString().split('T')[0])
+      const workout = state.workouts.find(w => w.date.split('T')[0] === date.toISOString().split('T')[0])
       if (!workout) return []
       
       // First group by category
@@ -46,17 +46,38 @@ export const useWorkoutStore = defineStore('workout', {
       this.error = null
 
       try {
-        // Comment out Supabase call for now
-        // const { data, error } = await supabase
-        //   .from('workouts')
-        //   .select('*')
-        //   .order('date', { ascending: false })
+        // First, fetch all workouts
+        const { data: workoutsData, error: workoutsError } = await supabase
+          .from('workouts')
+          .select('*')
+          .order('date', { ascending: false })
 
-        // if (error) throw error
-        // this.workouts = data
+        if (workoutsError) throw workoutsError
 
-        // Use mock data for now
-        this.workouts = []
+        // Then, fetch all exercises for these workouts
+        const workoutIds = workoutsData.map(w => w.id)
+        const { data: exercisesData, error: exercisesError } = await supabase
+          .from('exercises')
+          .select('*')
+          .in('workout_id', workoutIds)
+
+        if (exercisesError) throw exercisesError
+
+        // Combine the data
+        this.workouts = workoutsData.map(workout => ({
+          ...workout,
+          exercises: exercisesData
+            .filter(exercise => exercise.workout_id === workout.id)
+            .map(exercise => ({
+              id: exercise.id,
+              name: exercise.name,
+              category: exercise.category,
+              sets: exercise.sets,
+              reps: exercise.reps,
+              weight: exercise.weight,
+              timePerSet: exercise.time_per_set
+            }))
+        }))
       } catch (error) {
         this.error = error.message
         throw error
@@ -73,26 +94,19 @@ export const useWorkoutStore = defineStore('workout', {
         const existingWorkout = this.getWorkoutByDate(date)
         if (existingWorkout) return existingWorkout
 
-        // Comment out Supabase call for now
-        // const { data, error } = await supabase
-        //   .from('workouts')
-        //   .insert([{ date }])
-        //   .select()
+        const { data, error } = await supabase
+          .from('workouts')
+          .insert([{ 
+            date: date.toISOString().split('T')[0],
+            exercises: []
+          }])
+          .select()
 
-        // if (error) throw error
-        // if (data && data.length > 0) {
-        //   this.workouts.push(data[0])
-        //   return data[0]
-        // }
-
-        // Use mock data for now
-        const newWorkout = {
-          id: Date.now().toString(),
-          date,
-          exercises: []
+        if (error) throw error
+        if (data && data.length > 0) {
+          this.workouts.push(data[0])
+          return data[0]
         }
-        this.workouts.push(newWorkout)
-        return newWorkout
       } catch (error) {
         this.error = error.message
         throw error
@@ -107,30 +121,34 @@ export const useWorkoutStore = defineStore('workout', {
 
       try {
         const workout = await this.addWorkout(date)
+        
+        const { data, error } = await supabase
+          .from('exercises')
+          .insert([{
+            workout_id: workout.id,
+            name: exerciseData.name,
+            category: exerciseData.category,
+            sets: exerciseData.sets,
+            reps: exerciseData.reps,
+            weight: exerciseData.weight,
+            time_per_set: exerciseData.timePerSet
+          }])
+          .select()
+
+        if (error) throw error
+        if (!data || data.length === 0) throw new Error('Failed to add exercise')
+
         const exercise = {
-          id: Date.now().toString(),
-          name: exerciseData.name,
-          category: exerciseData.category,
-          sets: exerciseData.sets,
-          reps: exerciseData.reps,
-          weight: exerciseData.weight,
-          timePerSet: exerciseData.timePerSet
+          id: data[0].id,
+          name: data[0].name,
+          category: data[0].category,
+          sets: data[0].sets,
+          reps: data[0].reps,
+          weight: data[0].weight,
+          timePerSet: data[0].time_per_set
         }
 
-        // Comment out Supabase call for now
-        // const { error } = await supabase
-        //   .from('workout_exercises')
-        //   .insert([{
-        //     workout_id: workout.id,
-        //     exercise_id: exercise.id,
-        //     sets: exercise.sets,
-        //     reps: exercise.reps,
-        //     weight: exercise.weight,
-        //     time_per_set: exercise.timePerSet
-        //   }])
-
-        // if (error) throw error
-
+        // Update local state
         workout.exercises.push(exercise)
         return exercise
       } catch (error) {
@@ -149,14 +167,14 @@ export const useWorkoutStore = defineStore('workout', {
         const workout = this.getWorkoutByDate(date)
         if (!workout) return
 
-        // Comment out Supabase call for now
-        // const { error } = await supabase
-        //   .from('workout_exercises')
-        //   .delete()
-        //   .eq('id', exerciseId)
+        const { error } = await supabase
+          .from('exercises')
+          .delete()
+          .eq('id', exerciseId)
 
-        // if (error) throw error
+        if (error) throw error
 
+        // Update local state
         const index = workout.exercises.findIndex(ex => ex.id === exerciseId)
         if (index !== -1) {
           workout.exercises.splice(index, 1)
@@ -177,23 +195,23 @@ export const useWorkoutStore = defineStore('workout', {
         const workout = this.getWorkoutByDate(date)
         if (!workout) return
 
+        const { error } = await supabase
+          .from('exercises')
+          .update({
+            sets: exerciseData.sets,
+            reps: exerciseData.reps,
+            weight: exerciseData.weight,
+            time_per_set: exerciseData.timePerSet
+          })
+          .eq('id', exerciseId)
+
+        if (error) throw error
+
+        // Update local state
         const exercise = workout.exercises.find(ex => ex.id === exerciseId)
-        if (!exercise) return
-
-        // Comment out Supabase call for now
-        // const { error } = await supabase
-        //   .from('workout_exercises')
-        //   .update({
-        //     sets: exerciseData.sets,
-        //     reps: exerciseData.reps,
-        //     weight: exerciseData.weight,
-        //     time_per_set: exerciseData.timePerSet
-        //   })
-        //   .eq('id', exercise.id)
-
-        // if (error) throw error
-
-        Object.assign(exercise, exerciseData)
+        if (exercise) {
+          Object.assign(exercise, exerciseData)
+        }
       } catch (error) {
         this.error = error.message
         throw error

@@ -1,8 +1,5 @@
-<!-- src/views/Profile.vue -->
 <template>
   <v-container class="py-10" fluid>
-    <navbar />
-
     <v-row justify="center">
       <v-col cols="12" sm="8" md="6">
         <v-card class="profile-card" elevation="4">
@@ -147,7 +144,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import Navbar from "@/components/Navbar.vue"
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()

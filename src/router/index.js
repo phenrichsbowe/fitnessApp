@@ -30,6 +30,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/views/SettingsScreen.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/exercises',
       name: 'exercises',
       component: ExerciseManagement,

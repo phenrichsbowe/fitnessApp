@@ -16,7 +16,7 @@
           />
           <v-switch
             v-model="darkMode"
-            label="Dark Mode"
+            label="Enable Tips"
             color="primary"
           />
           <v-text-field

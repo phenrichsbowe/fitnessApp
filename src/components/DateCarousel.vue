@@ -76,14 +76,31 @@ export default {
     };
 
     const updateDate = (modifier) => {
-      currentDate.value = new Date(currentDate.value.setDate(currentDate.value.getDate() + modifier));
-      emit("dateChanged", currentDate.value);
+      const newDate = new Date(currentDate.value)
+      newDate.setDate(newDate.getDate() + modifier)
+      
+      // Ensure we don't go beyond today
+      if (newDate > new Date()) {
+        newDate.setHours(0, 0, 0, 0)
+        newDate.setTime(new Date().getTime())
+      }
+      
+      currentDate.value = newDate
+      emit("dateChanged", newDate)
     };
 
     const selectDate = (date) => {
-      currentDate.value = new Date(date);
-      showDatePicker.value = false;
-      emit("dateChanged", currentDate.value);
+      const selectedDate = new Date(date)
+      
+      // Ensure we don't go beyond today
+      if (selectedDate > new Date()) {
+        selectedDate.setHours(0, 0, 0, 0)
+        selectedDate.setTime(new Date().getTime())
+      }
+      
+      currentDate.value = selectedDate
+      showDatePicker.value = false
+      emit("dateChanged", selectedDate)
     };
 
     return {

@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import supabase from '@/lib/supabase'
 import { User } from '@/models/User'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const error = ref(null)
@@ -51,21 +53,53 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const signUp = async (email, password, username) => {
-    try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+    const signUpResponse = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         email,
         password,
-        options: {
-          data: {
-            username
-          }
-        }
+        username
       })
-      if (signUpError) throw signUpError
+    });
 
-      user.value = User.fromSupabaseUser(data.user)
+    if (!signUpResponse.ok) {
+      error.value = 'Failed to register user ' + signUpResponse.errror;
+    }
+
+    try {
+      // Call the server endpoint instead of using supabaseAdmin directly
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          username
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to register user');
+      }
+
+      // After successful registration, log the user in
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (loginError) throw loginError;
+
+      user.value = User.fromSupabaseUser(loginData.user)
       error.value = null
-      return data
+      return loginData
     } catch (err) {
       console.error('Signup error:', err)
       error.value = err.message
