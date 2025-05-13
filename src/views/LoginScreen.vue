@@ -4,7 +4,7 @@
       <v-col cols="12" sm="8" md="4">
         <v-card elevation="6" class="login-card">
           <v-card-title class="text-h5 text-center pt-6">
-            Welcome to My Workouts
+            Welcome to My Fitness App
           </v-card-title>
           
           <v-card-text>
@@ -17,7 +17,7 @@
             <v-window v-model="activeTab">
               <!-- Login Form -->
               <v-window-item value="login">
-                <v-form @submit.prevent="submitLogin" ref="loginForm" class="mt-4">
+                <v-form @submit.prevent="submitLogin" ref="loginForm" class="mt-4" validate>
                   <v-text-field
                     v-model="loginEmail"
                     label="Email"
@@ -27,6 +27,7 @@
                     density="comfortable"
                     required
                     :error-messages="authStore.error"
+                    autocomplete="email"
                   >
                     <template v-slot:prepend-inner>
                       <v-icon color="primary" class="mr-2">mdi-email</v-icon>
@@ -41,6 +42,7 @@
                     variant="outlined"
                     density="comfortable"
                     required
+                    autocomplete="current-password"
                   >
                     <template v-slot:prepend-inner>
                       <v-icon color="primary" class="mr-2">mdi-lock</v-icon>
@@ -61,7 +63,7 @@
 
               <!-- Sign Up Form -->
               <v-window-item value="signup">
-                <v-form @submit.prevent="submitSignUp" ref="signupForm" class="mt-4">
+                <v-form @submit.prevent="submitSignUp" ref="signupForm" class="mt-4" validate>
                   <v-text-field
                     v-model="signupUsername"
                     label="Username"
@@ -70,6 +72,7 @@
                     density="comfortable"
                     required
                     :error-messages="authStore.error"
+                    autocomplete="username"
                   >
                     <template v-slot:prepend-inner>
                       <v-icon color="primary" class="mr-2">mdi-account</v-icon>
@@ -84,6 +87,7 @@
                     variant="outlined"
                     density="comfortable"
                     required
+                    autocomplete="username"
                   >
                     <template v-slot:prepend-inner>
                       <v-icon color="primary" class="mr-2">mdi-email</v-icon>
@@ -98,6 +102,7 @@
                     variant="outlined"
                     density="comfortable"
                     required
+                    autocomplete="new-password"
                   >
                     <template v-slot:prepend-inner>
                       <v-icon color="primary" class="mr-2">mdi-lock</v-icon>
@@ -112,6 +117,7 @@
                     variant="outlined"
                     density="comfortable"
                     required
+                    autocomplete="new-password"
                   >
                     <template v-slot:prepend-inner>
                       <v-icon color="primary" class="mr-2">mdi-lock-check</v-icon>
@@ -163,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -181,6 +187,9 @@ const signupPassword = ref('')
 const confirmPassword = ref('')
 
 const activeTab = ref('login')
+
+const loginValid = ref(false)
+const signupValid = ref(false)
 
 const rules = {
   required: value => !!value || 'Required.',
@@ -201,8 +210,9 @@ const rules = {
 }
 
 const submitLogin = async () => {
-  if (!loginForm.value?.validate()) return
-  
+  const { valid } = await loginForm.value?.validate()
+  if (!valid) return
+
   try {
     await authStore.loginWithSupabase(loginEmail.value, loginPassword.value)
     router.push('/home')
@@ -213,8 +223,9 @@ const submitLogin = async () => {
 }
 
 const submitSignUp = async () => {
-  if (!signupForm.value?.validate()) return
-  
+  const { valid } = await signupForm.value?.validate()
+  if (!valid) return
+
   try {
     await authStore.signUp(signupEmail.value, signupPassword.value, signupUsername.value)
     router.push('/home')
