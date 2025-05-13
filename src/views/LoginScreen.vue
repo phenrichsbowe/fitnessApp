@@ -188,11 +188,8 @@ const confirmPassword = ref('')
 
 const activeTab = ref('login')
 
-const loginValid = ref(false)
-const signupValid = ref(false)
-
 const rules = {
-  required: value => !!value || 'Required.',
+  required: value => !!value || 'Required.', 
   email: value => {
     const pattern = /^[^@]+@[^@]+\.[a-zA-Z]{2,}$/
     return pattern.test(value) || 'Invalid email.'
@@ -210,27 +207,26 @@ const rules = {
 }
 
 const submitLogin = async () => {
-  const { valid } = await loginForm.value?.validate()
+  const { valid } = loginForm.value?.validate()
   if (!valid) return
 
   try {
     await authStore.loginWithSupabase(loginEmail.value, loginPassword.value)
     router.push('/home')
   } catch (err) {
-    // Error is handled by the store and displayed in the form
     console.error('Login error:', err)
   }
 }
 
 const submitSignUp = async () => {
-  const { valid } = await signupForm.value?.validate()
+  const { valid } = signupForm.value?.validate()
+
   if (!valid) return
 
   try {
     await authStore.signUp(signupEmail.value, signupPassword.value, signupUsername.value)
     router.push('/home')
   } catch (err) {
-    // Error is handled by the store and displayed in the form
     console.error('Signup error:', err)
   }
 }
