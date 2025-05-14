@@ -24,7 +24,7 @@ app.post('/api/auth/register', async (req, res) => {
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: false,
+      email_confirm: true,
       user_metadata: { username }
     });
 

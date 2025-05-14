@@ -1,8 +1,6 @@
 <!-- src/views/Settings.vue -->
 <template>
   <v-container class="py-10" fluid>
-    <navbar />
-
     <v-card class="mx-auto" max-width="600" elevation="10">
       <v-card-title class="bg-primary text-white">
         Settings
@@ -10,23 +8,32 @@
       <v-card-text>
         <v-form>
           <v-switch
-            v-model="notifications"
+            v-model="store.notifications"
             label="Enable Notifications"
             color="primary"
+            @change="saveSettings"
           />
           <v-switch
-            v-model="darkMode"
+            v-model="store.enableTips"
             label="Enable Tips"
             color="primary"
+            @change="saveSettings"
+            :hint="store.enableTips ? 'You will see helpful tips while using the app' : 'No tips will be shown'"
+            persistent-hint
           />
-          <v-text-field
-            v-model="language"
-            label="Preferred Language"
+          <v-switch
+            v-model="store.isMetric"
+            :label="'Use Metric System (' + store.weightUnit + ')'"
             color="primary"
+            @change="saveSettings"
           />
-          <v-btn class="mt-4" color="primary" @click="saveSettings">
-            Save Changes
-          </v-btn>
+          <v-select
+            v-model="store.language"
+            label="Preferred Language"
+            :items="['English', 'Spanish', 'French']"
+            color="primary"
+            @update:model-value="saveSettings"
+          />
         </v-form>
       </v-card-text>
     </v-card>
@@ -34,18 +41,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import Navbar from "@/components/Navbar.vue";
+import { useSettingsStore } from '@/stores/settings'
 
-const notifications = ref(true)
-const darkMode = ref(false)
-const language = ref('English')
+const store = useSettingsStore()
 
 const saveSettings = () => {
-  console.log('Settings saved:', {
-    notifications: notifications.value,
-    darkMode: darkMode.value,
-    language: language.value,
-  })
+  store.saveSettings()
 }
 </script>

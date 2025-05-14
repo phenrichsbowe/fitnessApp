@@ -1,43 +1,42 @@
 <template>
     <v-main class="ml-auto mr-auto">
-      <DateCarousel @dateChanged="updateDate" />
+      <v-container>
+        <v-row class="mb-6">
+          <v-col cols="12">
+            <v-card color="primary" class="welcome-banner">
+              <v-card-text class="text-h5 text-center text-white">
+                Welcome back, {{ authStore.user?.username || 'user' }}!
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
 
-      <WorkoutHistory
-        :selectedDate="currentDate"
-      />
+        <DateCarousel @dateChanged="updateDate" />
+
+        <WorkoutHistory
+          :selectedDate="currentDate"
+        />
+      </v-container>
     </v-main>
 </template>
 
 
-<script>
+<script setup>
 import { ref } from "vue";
+import { useAuthStore } from '@/stores/auth'
 import DateCarousel from "@/components/DateCarousel.vue";
-import Navbar from "@/components/Navbar.vue";
 import WorkoutHistory from "@/components/WorkoutHistory.vue";
 
-export default {
-  components: {
-    DateCarousel,
-    Navbar,
-    WorkoutHistory
-  },
-  data() {
-    return {
-    };
-  },
-  setup() {
-    const currentDate = ref(new Date());
-    const updateDate = (newDate) => {
-      currentDate.value = newDate;
-    };
+const authStore = useAuthStore()
+const currentDate = ref(new Date());
 
-    return {
-      currentDate,
-      updateDate,
-    };
-  },
+const updateDate = (newDate) => {
+  currentDate.value = newDate;
 };
 </script>
 
 <style scoped>
+.welcome-banner {
+  border-radius: 8px;
+}
 </style>

@@ -34,6 +34,7 @@
 <script>
 import { ref, computed } from "vue";
 import { VDialog, VCard, VDatePicker, VCardActions, VBtn, VIcon } from 'vuetify/components';
+import { useSettingsStore } from '@/stores/settings';
 
 export default {
   emits: ["dateChanged"],
@@ -46,8 +47,23 @@ export default {
     VIcon
   },
   setup(_, { emit }) {
+    const settingsStore = useSettingsStore();
     const currentDate = ref(new Date());
     const showDatePicker = ref(false);
+    const messages = ref([]);
+    let totalConsecutiveClicks = 0;
+    let calenderViewTipDisabled = false;
+
+    function handleCalenderViewTip () {
+      if (!settingsStore.enableTips) return;
+      
+      totalConsecutiveClicks++;
+
+      if (!calenderViewTipDisabled && totalConsecutiveClicks >= 10) {
+        calenderViewTipDisabled = true;
+        messages.value.push('Tip: Click on the date to open a calendar view.')
+      }
+    }
 
     const maxDate = computed(() => {
       return new Date().toISOString().split("T")[0];
@@ -57,19 +73,6 @@ export default {
       const epoch = new Date(0);
       return epoch.toISOString().split("T")[0];
     });
-
-    const messages = ref([]);
-    let totalConsecutiveClicks = 0;
-    let calenderViewTipDisabled = false;
-
-    function handleCalenderViewTip () {
-      totalConsecutiveClicks++;
-
-      if (!calenderViewTipDisabled && totalConsecutiveClicks >= 10) {
-        calenderViewTipDisabled = true;
-        messages.value.push('Tip: Click on the date to open a calendar view.')
-      }
-    }
 
     const formatDate = (date) => {
       return date.toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });

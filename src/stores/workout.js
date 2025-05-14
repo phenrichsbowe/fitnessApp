@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
 import supabase from '@/lib/supabase'
+import { useAuthStore } from '@/stores/auth'
+import { useExerciseStore } from '@/stores/exercise'
+import { useSettingsStore } from './settings'
 
 export const useWorkoutStore = defineStore('workout', {
   state: () => ({
@@ -11,14 +14,19 @@ export const useWorkoutStore = defineStore('workout', {
   getters: {
     getWorkoutByDate: (state) => (date) => {
       const dateKey = date.toISOString().split('T')[0]
-      return state.workouts.find(workout => workout.date.split('T')[0] === dateKey)
+      return state.workouts.find(workout => 
+        workout.date.toISOString().split('T')[0] === dateKey
+      )
     },
     getWorkoutsByDate: (state) => (date) => {
-      const workout = state.workouts.find(w => w.date.split('T')[0] === date.toISOString().split('T')[0])
-      if (!workout) return []
+      const workout = state.workouts.find(w => 
+        w.date.toISOString().split('T')[0] === date.toISOString().split('T')[0]
+      )
+      if (!workout || !workout.exercises || !Array.isArray(workout.exercises)) return []
       
       // First group by category
       const groupedByCategory = workout.exercises.reduce((acc, exercise) => {
+        if (!exercise || !exercise.category || !exercise.name) return acc
         if (!acc[exercise.category]) {
           acc[exercise.category] = {}
         }
@@ -45,40 +53,69 @@ export const useWorkoutStore = defineStore('workout', {
       this.loading = true
       this.error = null
 
+      const authStore = useAuthStore()
+      const settingsStore = useSettingsStore()
+
       try {
-        // First, fetch all workouts
-        const { data: workoutsData, error: workoutsError } = await supabase
+        // Handle offline mode using localStorage
+        if (authStore.isOfflineMode) {
+          const storedWorkouts = localStorage.getItem('offlineWorkouts')
+          this.workouts = storedWorkouts ? JSON.parse(storedWorkouts) : []
+          
+          // Convert date strings back to Date objects
+          this.workouts.forEach(workout => {
+            workout.date = new Date(workout.date)
+          })
+          return
+        }
+
+        if (!authStore.user) throw new Error('User not authenticated')
+
+        const { data: workouts, error } = await supabase
           .from('workouts')
-          .select('*')
+          .select(`
+            id,
+            date,
+            workout_exercises (
+              id,
+              sets,
+              reps,
+              weight,
+              time_per_set,
+              exercises (
+                name,
+                category,
+                muscle_groups
+              )
+            )
+          `)
+          .eq('user_id', authStore.user.id)
           .order('date', { ascending: false })
 
-        if (workoutsError) throw workoutsError
+        if (error) throw error
 
-        // Then, fetch all exercises for these workouts
-        const workoutIds = workoutsData.map(w => w.id)
-        const { data: exercisesData, error: exercisesError } = await supabase
-          .from('exercises')
-          .select('*')
-          .in('workout_id', workoutIds)
+        this.workouts = workouts.map(workout => {
+          const exercises = workout.workout_exercises.map(ex => ({
+            id: ex.id,
+            name: ex.exercises.name,
+            category: ex.exercises.category,
+            muscleGroups: ex.exercises.muscle_groups,
+            sets: ex.sets,
+            reps: ex.reps,
+            weight: ex.weight && !settingsStore.isMetric 
+              ? settingsStore.convertWeight(ex.weight, false)
+              : ex.weight,
+            timePerSet: ex.time_per_set
+          }))
 
-        if (exercisesError) throw exercisesError
-
-        // Combine the data
-        this.workouts = workoutsData.map(workout => ({
-          ...workout,
-          exercises: exercisesData
-            .filter(exercise => exercise.workout_id === workout.id)
-            .map(exercise => ({
-              id: exercise.id,
-              name: exercise.name,
-              category: exercise.category,
-              sets: exercise.sets,
-              reps: exercise.reps,
-              weight: exercise.weight,
-              timePerSet: exercise.time_per_set
-            }))
-        }))
+          return {
+            id: workout.id,
+            date: new Date(workout.date),
+            exercises
+          }
+        })
       } catch (error) {
+        console.error('Error fetching workouts:', error)
         this.error = error.message
         throw error
       } finally {
@@ -91,6 +128,9 @@ export const useWorkoutStore = defineStore('workout', {
       this.error = null
 
       try {
+        const authStore = useAuthStore()
+        if (!authStore.user) throw new Error('User not authenticated')
+
         const existingWorkout = this.getWorkoutByDate(date)
         if (existingWorkout) return existingWorkout
 
@@ -98,14 +138,18 @@ export const useWorkoutStore = defineStore('workout', {
           .from('workouts')
           .insert([{ 
             date: date.toISOString().split('T')[0],
-            exercises: []
+            user_id: authStore.user.id
           }])
           .select()
 
         if (error) throw error
         if (data && data.length > 0) {
-          this.workouts.push(data[0])
-          return data[0]
+          const newWorkout = {
+            ...data[0],
+            exercises: []
+          }
+          this.workouts.push(newWorkout)
+          return newWorkout
         }
       } catch (error) {
         this.error = error.message
@@ -119,39 +163,116 @@ export const useWorkoutStore = defineStore('workout', {
       this.loading = true
       this.error = null
 
+      const authStore = useAuthStore()
+      const settingsStore = useSettingsStore()
+
       try {
-        const workout = await this.addWorkout(date)
-        
-        const { data, error } = await supabase
-          .from('exercises')
-          .insert([{
-            workout_id: workout.id,
+        // Handle offline mode using localStorage
+        if (authStore.isOfflineMode) {
+          let workout = this.getWorkoutByDate(date)
+          
+          // Create new workout if it doesn't exist
+          if (!workout) {
+            workout = {
+              id: `local-${Date.now()}`,
+              date: new Date(date),
+              exercises: []
+            }
+            this.workouts.push(workout)
+          }
+
+          // Add exercise to workout
+          const newExercise = {
+            id: `local-${Date.now()}-${workout.exercises.length}`,
             name: exerciseData.name,
             category: exerciseData.category,
-            sets: exerciseData.sets,
-            reps: exerciseData.reps,
-            weight: exerciseData.weight,
-            time_per_set: exerciseData.timePerSet
-          }])
-          .select()
+            muscleGroups: exerciseData.muscleGroups || [],
+            sets: exerciseData.sets || 3,
+            reps: exerciseData.reps || 10,
+            weight: exerciseData.weight || null,
+            notes: exerciseData.notes || null
+          }
 
-        if (error) throw error
-        if (!data || data.length === 0) throw new Error('Failed to add exercise')
-
-        const exercise = {
-          id: data[0].id,
-          name: data[0].name,
-          category: data[0].category,
-          sets: data[0].sets,
-          reps: data[0].reps,
-          weight: data[0].weight,
-          timePerSet: data[0].time_per_set
+          workout.exercises.push(newExercise)
+          
+          // Save to localStorage
+          localStorage.setItem('offlineWorkouts', JSON.stringify(this.workouts))
+          return newExercise
         }
 
-        // Update local state
-        workout.exercises.push(exercise)
-        return exercise
+        if (!authStore.user) throw new Error('User not authenticated')
+
+        // Rest of the existing online mode code...
+        let workout = this.getWorkoutByDate(date)
+        let workoutId = workout?.id
+
+        if (!workoutId) {
+          const { data: newWorkout, error: workoutError } = await supabase
+            .from('workouts')
+            .insert({
+              user_id: authStore.user.id,
+              date: date.toISOString().split('T')[0]
+            })
+            .select()
+            .single()
+
+          if (workoutError) throw workoutError
+          workoutId = newWorkout.id
+        }
+
+        // Ensure we have a valid UUID for the exercise
+        if (!exerciseData.exerciseId || typeof exerciseData.exerciseId !== 'string') {
+          throw new Error('Invalid exercise ID. Expected UUID string.')
+        }
+
+        const { data: newExercise, error: exerciseError } = await supabase
+          .from('workout_exercises')
+          .insert({
+            workout_id: workoutId,
+            exercise_id: exerciseData.exerciseId,
+            sets: exerciseData.sets || 3,
+            reps: exerciseData.reps || 10,
+            weight: exerciseData.weight || null,
+            notes: exerciseData.notes || null
+          })
+          .select(`
+            id,
+            sets,
+            reps,
+            weight,
+            notes,
+            exercises (
+              name,
+              category,
+              muscle_groups
+            )
+          `)
+          .single()
+
+        if (exerciseError) throw exerciseError
+
+        if (!workout) {
+          this.workouts.push({
+            id: workoutId,
+            date: new Date(date),
+            exercises: []
+          })
+          workout = this.workouts[this.workouts.length - 1]
+        }
+
+        workout.exercises.push({
+          id: newExercise.id,
+          name: newExercise.exercises.name,
+          category: newExercise.exercises.category,
+          muscleGroups: newExercise.exercises.muscle_groups,
+          sets: newExercise.sets,
+          reps: newExercise.reps,
+          weight: newExercise.weight,
+          notes: newExercise.notes
+        })
+
       } catch (error) {
+        console.error('Error adding exercise:', error)
         this.error = error.message
         throw error
       } finally {
@@ -163,23 +284,33 @@ export const useWorkoutStore = defineStore('workout', {
       this.loading = true
       this.error = null
 
-      try {
-        const workout = this.getWorkoutByDate(date)
-        if (!workout) return
+      const authStore = useAuthStore()
 
-        const { error } = await supabase
-          .from('exercises')
+      try {
+        // Handle offline mode
+        if (authStore.isOfflineMode) {
+          const workout = this.getWorkoutByDate(date)
+          if (workout) {
+            workout.exercises = workout.exercises.filter(e => e.id !== exerciseId)
+            localStorage.setItem('offlineWorkouts', JSON.stringify(this.workouts))
+          }
+          return
+        }
+
+        const { error: deleteError } = await supabase
+          .from('workout_exercises')
           .delete()
           .eq('id', exerciseId)
 
-        if (error) throw error
+        if (deleteError) throw deleteError
 
         // Update local state
-        const index = workout.exercises.findIndex(ex => ex.id === exerciseId)
-        if (index !== -1) {
-          workout.exercises.splice(index, 1)
+        const workout = this.getWorkoutByDate(date)
+        if (workout) {
+          workout.exercises = workout.exercises.filter(e => e.id !== exerciseId)
         }
       } catch (error) {
+        console.error('Error removing exercise:', error)
         this.error = error.message
         throw error
       } finally {
@@ -192,26 +323,31 @@ export const useWorkoutStore = defineStore('workout', {
       this.error = null
 
       try {
+        const authStore = useAuthStore()
+        if (!authStore.user) throw new Error('User not authenticated')
+
         const workout = this.getWorkoutByDate(date)
         if (!workout) return
 
+
+        console.log('here update3')
+        const exercise = workout.exercises.find(ex => ex.id === exerciseId)
+        if (!exercise) return
+
         const { error } = await supabase
-          .from('exercises')
+          .from('workout_exercises')
           .update({
             sets: exerciseData.sets,
             reps: exerciseData.reps,
             weight: exerciseData.weight,
             time_per_set: exerciseData.timePerSet
           })
-          .eq('id', exerciseId)
+          .eq('id', exercise.id)
+          .eq('workout_id', workout.id)
 
         if (error) throw error
 
-        // Update local state
-        const exercise = workout.exercises.find(ex => ex.id === exerciseId)
-        if (exercise) {
-          Object.assign(exercise, exerciseData)
-        }
+        Object.assign(exercise, exerciseData)
       } catch (error) {
         this.error = error.message
         throw error

@@ -1,113 +1,55 @@
 <template>
-  <v-card class="exercise-item-card" outlined>
-    <v-card-text class="d-flex flex-column gap-2">
-      <div class="d-flex justify-space-between align-center">
-        <div class="exercise-details">
-          <div class="weight" v-if="exercise.weight">
-            {{ exercise.weight }} kg
-          </div>
-          <div class="time" v-if="exercise.timePerSet">
-            {{ exercise.timePerSet }} sec
-          </div>
+  <div class="exercise-entry pa-2">
+    <div v-for="entry in exercise.entries" :key="entry.id" class="entry-item">
+      <div class="d-flex align-center justify-space-between">
+        <div class="exercise-details text-body-1">
+          <span class="font-weight-medium">Weight: {{ entry.weight }}{{ settingsStore.weightUnit }}</span>
+          <span class="mx-2">•</span>
+          <span class="font-weight-medium">Sets: {{ entry.sets }}</span>
         </div>
-        <v-btn icon @click="$emit('delete', exercise)">
-          <v-icon color="red">mdi-delete</v-icon>
-        </v-btn>
-      </div>
-
-      <div class="control-row">
-        <v-text-field
-          v-model.number="editableSets"
-          label="Sets"
-          type="number"
-          min="1"
-          hide-details
+        <v-btn
+          icon="mdi-delete"
+          variant="text"
           density="compact"
+          color="error"
+          size="small"
+          @click="$emit('delete', entry)"
         />
-        <v-text-field
-          v-model.number="editableReps"
-          label="Reps"
-          type="number"
-          min="1"
-          hide-details
-          density="compact"
-        />
-        <v-btn color="primary" class="save-btn" @click="emitEdit">
-          Save
-        </v-btn>
       </div>
-    </v-card-text>
-  </v-card>
+    </div>
+  </div>
 </template>
 
+<script setup>
+import { useSettingsStore } from '@/stores/settings'
 
-<script>
-export default {
-  props: {
-    exercise: {
-      type: Object,
-      required: true,
-    }
-  },
-  data() {
-    return {
-      editableSets: this.exercise.sets,
-      editableReps: this.exercise.reps
-    };
-  },
-  methods: {
-    emitEdit() {
-      const updated = {
-        ...this.exercise,
-        sets: this.editableSets,
-        reps: this.editableReps
-      };
-      this.$emit('edit', updated);
-    }
+const settingsStore = useSettingsStore()
+
+const props = defineProps({
+  exercise: {
+    type: Object,
+    required: true,
   }
-};
+})
+
+defineEmits(['delete'])
 </script>
 
 <style scoped>
-.exercise-item-card {
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.3s ease-in-out;
-  background-color: #ffffff;
+.exercise-entry {
+  background-color: rgb(var(--v-theme-surface));
 }
 
-.exercise-item-card:hover {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+.entry-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
+}
+
+.entry-item:last-child {
+  border-bottom: none;
 }
 
 .exercise-details {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.weight, .time {
-  font-size: 16px;
-  font-weight: 500;
-  color: #666;
-  background-color: #f5f5f5;
-  padding: 4px 12px;
-  border-radius: 16px;
-}
-
-.control-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-top: 10px;
-}
-
-.v-text-field {
-  max-width: 120px;
-}
-
-.save-btn {
-  border-radius: 8px;
-  text-transform: none;
+  color: rgba(var(--v-theme-on-surface), 0.87);
 }
 </style>

@@ -39,9 +39,16 @@ import { ref } from 'vue'
 const drawer = ref(false)
 const items = [
   { title: 'Dashboard', icon: 'mdi-home', to: '/' },
-  { title: 'Settings', icon: 'mdi-cog', to: '/settings' },
-  { title: 'Profile', icon: 'mdi-account', to: '/profile' },
   { title: 'Exercises', icon: 'mdi-account', to: '/exercises' },
+  { title: 'Profile', icon: 'mdi-account', to: '/profile' },
+  { title: 'Progress', icon: 'mdi-chart-box', to: '/progress' },
+  { title: 'Settings', icon: 'mdi-cog', to: '/settings' },
+  {
+    title: 'Food Diary',
+    icon: 'mdi-food-apple',
+    to: '/food-diary',
+    requiresAuth: true
+  },
 ]
 
 const toggleDrawer = () => {

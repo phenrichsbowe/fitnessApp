@@ -28,7 +28,7 @@
       <v-btn
         color="primary"
         class="add-exercise-btn"
-        @click="openModal"
+        @click="openExercisesPage"
         :loading="loading"
         :disabled="loading"
       >
@@ -36,22 +36,17 @@
         Add Exercise
       </v-btn>
     </div>
-
-    <AddExerciseModal
-      v-model:show="showModal"
-      :exercise="newExercise"
-      @save-exercise="saveExercise"
-    />
   </v-container>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workout'
 import { useExerciseStore } from '@/stores/exercise'
 import ExerciseCategoryList from './ExerciseCategoryList.vue'
-import AddExerciseModal from './AddExerciseModal.vue'
 
+const router = useRouter()
 const props = defineProps({
   selectedDate: {
     type: Date,
@@ -62,17 +57,8 @@ const props = defineProps({
 const workoutStore = useWorkoutStore()
 const exerciseStore = useExerciseStore()
 
-const showModal = ref(false)
 const loading = ref(false)
 const error = ref(null)
-
-const newExercise = ref({
-  name: '',
-  sets: 3,
-  reps: 10,
-  weight: '',
-  timePerSet: ''
-})
 
 // Computed property for workouts
 const workouts = computed(() => {
@@ -114,8 +100,8 @@ watch(() => props.selectedDate, async (newDate) => {
   }
 })
 
-const openModal = () => {
-  showModal.value = true
+const openExercisesPage = () => {
+  router.push('/exercises')
 }
 
 const handleDeleteExercise = async (exerciseToDelete) => {
@@ -126,33 +112,6 @@ const handleDeleteExercise = async (exerciseToDelete) => {
       exerciseToDelete.name,
       exerciseToDelete.id
     )
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    loading.value = false
-  }
-}
-
-const saveExercise = async () => {
-  if (!newExercise.value.name) return
-
-  try {
-    loading.value = true
-    const exerciseData = {
-      ...newExercise.value,
-      category: exerciseStore.allExercises.find(ex => ex.name === newExercise.value.name)?.category
-    }
-    await workoutStore.addExercise(props.selectedDate, exerciseData)
-    
-    // Reset form
-    newExercise.value = {
-      name: '',
-      sets: 3,
-      reps: 10,
-      weight: '',
-      timePerSet: ''
-    }
-    showModal.value = false
   } catch (err) {
     error.value = err.message
   } finally {

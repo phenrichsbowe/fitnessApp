@@ -3,14 +3,11 @@ import { ref, computed } from 'vue'
 import supabase from '@/lib/supabase'
 import { User } from '@/models/User'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const error = ref(null)
   const ready = ref(false)
 
-  // Initialize store
   const init = async () => {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -28,7 +25,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Initialize immediately
   init()
 
   const isAuthenticated = computed(() => !!user.value)
@@ -53,25 +49,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const signUp = async (email, password, username) => {
-    const signUpResponse = await fetch(`${API_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email,
-        password,
-        username
-      })
-    });
-
-    if (!signUpResponse.ok) {
-      error.value = 'Failed to register user ' + signUpResponse.errror;
-    }
-
     try {
-      // Call the server endpoint instead of using supabaseAdmin directly
-      const response = await fetch(`${API_URL}/api/auth/register`, {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,21 +68,39 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error(data.error || 'Failed to register user');
       }
 
-      // After successful registration, log the user in
-      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Try to sign in after registration
+      try {
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
 
-      if (loginError) throw loginError;
+        if (loginError) {
+          // If login fails due to existing email, try to get the session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) throw sessionError;
+          
+          if (session?.user) {
+            user.value = User.fromSupabaseUser(session.user);
+            error.value = null;
+            return { user: session.user };
+          }
+          throw loginError;
+        }
 
-      user.value = User.fromSupabaseUser(loginData.user)
-      error.value = null
-      return loginData
+        user.value = User.fromSupabaseUser(loginData.user);
+        error.value = null;
+        return loginData;
+      } catch (loginErr) {
+        console.error('Auto-login after signup failed:', loginErr);
+        // Don't throw the error since registration was successful
+        // Instead, return the registration data
+        return data;
+      }
     } catch (err) {
-      console.error('Signup error:', err)
-      error.value = err.message
-      throw err
+      console.error('Signup error:', err);
+      error.value = err.message;
+      throw err;
     }
   }
 

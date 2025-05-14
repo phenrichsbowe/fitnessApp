@@ -37,15 +37,15 @@
                   mdi-account
                 </v-icon>
               </v-avatar>
-              <div class="text-h6 mt-4">{{ user?.username || 'User' }}</div>
+              <div class="text-h6 mt-4">{{ authStore.user?.username || 'User' }}</div>
               <div class="text-subtitle-1 text-medium-emphasis">
-                {{ user?.email || 'No email' }}
+                {{ authStore.user?.email || 'No email' }}
               </div>
             </div>
 
             <v-divider class="mb-6"></v-divider>
 
-            <v-form @submit.prevent="updateProfile" ref="profileForm">
+            <v-form @submit.prevent="updateProfile" ref="profileForm" validate>
               <v-card class="mb-6" elevation="0" color="grey-lighten-4">
                 <v-card-text>
                   <v-skeleton-loader
@@ -66,6 +66,7 @@
                       variant="outlined"
                       density="comfortable"
                       :disabled="isOfflineMode"
+                      :error-messages="authStore.error"
                     >
                       <template v-slot:prepend-inner>
                         <v-icon color="primary" class="mr-2">mdi-account</v-icon>
@@ -138,6 +139,15 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Add snackbar -->
+    <v-snackbar
+      v-model="showSnackbar"
+      :color="snackbarColor"
+      :timeout="3000"
+    >
+      {{ snackbarText }}
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -150,6 +160,11 @@ const router = useRouter()
 const authStore = useAuthStore()
 const profileForm = ref(null)
 const loading = ref(false)
+
+// Snackbar state
+const showSnackbar = ref(false)
+const snackbarText = ref('')
+const snackbarColor = ref('success')
 
 const username = ref('')
 const email = ref('')
@@ -166,7 +181,6 @@ const rules = {
   }
 }
 
-const user = computed(() => authStore.currentUser)
 const isOfflineMode = computed(() => authStore.isOfflineMode)
 
 onMounted(() => {
@@ -175,18 +189,27 @@ onMounted(() => {
     return
   }
   
-  username.value = authStore.currentUser?.username || ''
-  email.value = authStore.currentUser?.email || ''
+  username.value = authStore.user?.username || ''
+  email.value = authStore.user?.email || ''
 })
 
 const updateProfile = async () => {
-  if (!profileForm.value?.validate()) return
+  const valid = profileForm.value?.validate()
+  if (!valid) return
   
   loading.value = true
   try {
     await authStore.updateProfile(username.value)
+    // Show success message
+    snackbarText.value = 'Profile updated successfully'
+    snackbarColor.value = 'success'
+    showSnackbar.value = true
   } catch (err) {
     console.error('Error updating profile:', err)
+    // Show error message
+    snackbarText.value = authStore.error || 'Failed to update profile'
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
   } finally {
     loading.value = false
   }

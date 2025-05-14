@@ -1,33 +1,37 @@
 <template>
-  <v-list class="exercise-category-list">
+  <div class="exercise-list">
     <template v-if="loading">
       <v-skeleton-loader
         v-for="n in 3"
         :key="n"
-        type="list-item-avatar-two-line"
+        type="list-item-two-line"
         class="mb-4"
       />
     </template>
     <template v-else>
-      <div v-for="category in exercises" :key="category.category" class="category-group">
-        <div class="category-header">
-          <div class="category-name">{{ category.category }}</div>
-        </div>
-        <div class="exercises-container">
-          <div v-for="exercise in category.exercises" :key="exercise.name" class="exercise-group">
-            <div class="exercise-name">{{ exercise.name }}</div>
-            <ExerciseCategoryItem
-              v-for="entry in exercise.entries"
-              :key="entry.id"
-              :exercise="entry"
-              @edit="handleEdit"
-              @delete="handleDelete"
-            />
+      <v-card
+        v-for="category in exercises"
+        :key="category.category"
+        class="mb-4"
+        variant="outlined"
+      >
+        <v-card-title class="text-capitalize py-2 px-4 bg-primary text-white">
+          {{ category.category }}
+        </v-card-title>
+        <v-card-text class="pa-0">
+          <div class="exercise-items">
+            <div v-for="exercise in category.exercises" :key="exercise.name" class="exercise-group pa-3">
+              <div class="text-h6 mb-2">{{ exercise.name }}</div>
+              <ExerciseCategoryItem
+                :exercise="exercise"
+                @delete="handleDelete"
+              />
+            </div>
           </div>
-        </div>
-      </div>
+        </v-card-text>
+      </v-card>
     </template>
-  </v-list>
+  </div>
 </template>
 
 <script setup>
@@ -45,11 +49,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit-exercise', 'delete-exercise'])
-
-const handleEdit = (updatedExercise) => {
-  emit('edit-exercise', updatedExercise)
-}
+const emit = defineEmits(['delete-exercise'])
 
 const handleDelete = (exercise) => {
   emit('delete-exercise', exercise)
@@ -57,51 +57,27 @@ const handleDelete = (exercise) => {
 </script>
 
 <style scoped>
-.exercise-category-list {
+.exercise-list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
 }
 
-.category-group {
+.exercise-items {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.category-header {
-  padding: 8px 16px;
-  background-color: #1976d2;
-  border-radius: 8px;
-}
-
-.category-name {
-  font-size: 20px;
-  font-weight: 600;
-  color: white;
-  text-transform: capitalize;
-}
-
-.exercises-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0 8px;
 }
 
 .exercise-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  background-color: #f5f5f5;
-  border-radius: 12px;
+  border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
 }
 
-.exercise-name {
-  font-size: 18px;
+.exercise-group:last-child {
+  border-bottom: none;
+}
+
+.v-card-title {
+  font-size: 1.1rem;
   font-weight: 500;
-  color: #1976d2;
-  margin-bottom: 8px;
+  letter-spacing: 0.0125em;
 }
 </style>

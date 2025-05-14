@@ -4,6 +4,9 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+// Determine the API URL based on environment
+const apiUrl = process.env.VITE_API_URL || 'http://localhost:3000'
+
 export default defineConfig({
   plugins: [
     vue(),
@@ -21,8 +24,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
+        target: apiUrl,
+        changeOrigin: true,
+        secure: false
       }
     }
   }

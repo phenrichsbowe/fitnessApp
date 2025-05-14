@@ -207,7 +207,7 @@ const rules = {
 }
 
 const submitLogin = async () => {
-  const { valid } = loginForm.value?.validate()
+  const valid = loginForm.value?.validate()
   if (!valid) return
 
   try {
@@ -219,13 +219,18 @@ const submitLogin = async () => {
 }
 
 const submitSignUp = async () => {
-  const { valid } = signupForm.value?.validate()
-
+  const valid = signupForm.value?.validate()
   if (!valid) return
 
   try {
     await authStore.signUp(signupEmail.value, signupPassword.value, signupUsername.value)
-    router.push('/home')
+    if (authStore.isAuthenticated) {
+      router.push('/home')
+    } else {
+      activeTab.value = 'login'
+      loginEmail.value = signupEmail.value
+      loginPassword.value = signupPassword.value
+    }
   } catch (err) {
     console.error('Signup error:', err)
   }

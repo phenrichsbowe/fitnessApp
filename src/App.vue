@@ -3,6 +3,7 @@
     <Navbar />
     <router-view />
     <AppFooter />
+    <v-snackbar-queue />
   </v-app>
 </template>
 
